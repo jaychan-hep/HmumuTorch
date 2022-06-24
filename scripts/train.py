@@ -4,17 +4,17 @@ from argparse import ArgumentParser
 import json
 import numpy as np
 import pandas as pd
-import random
-from sklearn.metrics import roc_curve, auc, confusion_matrix, roc_auc_score
+# import random
 from sklearn.preprocessing import StandardScaler, QuantileTransformer
-from tabulate import tabulate
-import matplotlib.pyplot as plt
-from tqdm import tqdm
+# from tabulate import tabulate
+# import matplotlib.pyplot as plt
+# from tqdm import tqdm
 from pdb import set_trace
 import torch
 from torch import nn
 from torch.utils.data import random_split, DataLoader
 from myTorch import hmumuDataSets, models, loss
+from utils import metric
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
@@ -56,16 +56,28 @@ def test_loop(dataloader, model, loss_fn):
     num_batches = len(dataloader)
     test_loss, correct = 0, 0
 
+    scores = []
+    ys = []
+    ws = []
     with torch.no_grad():
         for X, y, w in dataloader:
             X, y, w = X.to(device), y.to(device), w.to(device)
             pred = model(X)
+            scores.append(pred)
+            ys.append(y)
+            ws.append(w)
             test_loss += (loss_fn(pred, y.unsqueeze(1).double(), w.unsqueeze(1).double())).item()
             correct += (pred.argmax(1) == y).type(torch.float).sum().item()
 
     test_loss /= num_batches
     correct /= size
-    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+
+    scores = torch.cat(scores).cpu().numpy().reshape(-1)
+    ys = torch.cat(ys).cpu().numpy()
+    ws = torch.cat(ws).cpu().numpy()
+    roc_auc = metric.roc_auc(scores, ys, ws)
+
+    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}, AUC: {roc_auc} \n")
 
 
 def main():
