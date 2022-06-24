@@ -14,7 +14,7 @@ from pdb import set_trace
 import torch
 from torch import nn
 from torch.utils.data import random_split, DataLoader
-from myTorch import hmumuDataSets, models
+from myTorch import hmumuDataSets, models, loss
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
@@ -39,16 +39,16 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         X, y, w = X.to(device), y.to(device), w.to(device)
         # Compute prediction and loss
         pred = model(X)
-        loss = loss_fn(pred, y.unsqueeze(1).double()) * w.double()
+        ls = loss_fn(pred, y.unsqueeze(1).double(), w.unsqueeze(1).double())
 
         # Backpropagation
         optimizer.zero_grad()
-        loss.backward()
+        ls.backward()
         optimizer.step()
 
         if batch % 1000 == 0:
-            loss, current = loss.item(), batch * len(X)
-            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+            ls, current = ls.item(), batch * len(X)
+            print(f"loss: {ls:>7f}  [{current:>5d}/{size:>5d}]")
 
 
 def test_loop(dataloader, model, loss_fn):
@@ -57,10 +57,10 @@ def test_loop(dataloader, model, loss_fn):
     test_loss, correct = 0, 0
 
     with torch.no_grad():
-        for X, y in dataloader:
-            X, y = X.to(device), y.to(device)
+        for X, y, w in dataloader:
+            X, y, w = X.to(device), y.to(device), w.to(device)
             pred = model(X)
-            test_loss += (loss_fn(pred, y.unsqueeze(1).double()) * w.double()).item()
+            test_loss += (loss_fn(pred, y.unsqueeze(1).double(), w.unsqueeze(1).double())).item()
             correct += (pred.argmax(1) == y).type(torch.float).sum().item()
 
     test_loss /= num_batches
@@ -101,8 +101,8 @@ def main():
     if config["algorithm"] == "FCN":
     	model = models.FCN(len(config["train_variables"]), number_of_nodes=config.get("number_of_nodes", [64, 32, 16, 8]), dropouts=config.get("dropouts", [1])).double().to(device)
 
-    loss_fn = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.get("learning_rate", 0.0001))
+    loss_fn = loss.EventWeightedBCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=config.get("learning_rate", 0.0001), eps=1e-07)
 
     epochs = 1
     for t in range(epochs):

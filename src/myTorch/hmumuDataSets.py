@@ -19,17 +19,18 @@ class RootDataSets(Dataset):
             bkg_cut = cut
         self.save = save
 
-        self.data = pd.DataFrame()
+        self.sig_data = pd.DataFrame()
+        self.bkg_data = pd.DataFrame()
         self.labels = []
         for data in tqdm(uproot.iterate(f"{input_dir}/{sigs}/*.root:{tree}", expressions=variables+[weight], cut=sig_cut, step_size=step_size, library='pd'), desc='[hmumuDataSets]: Loading signals', bar_format='{desc}: {percentage:3.0f}%|{bar:20}{r_bar}'):
-            self.data = self.data.append(data, ignore_index=True)
-            self.labels += [1]*len(data)
-
+            self.sig_data = self.sig_data.append(data, ignore_index=True)
         for data in tqdm(uproot.iterate(f"{input_dir}/{bkgs}/*.root:{tree}", expressions=variables+[weight], cut=bkg_cut, step_size=step_size, library='pd'), desc='[hmumuDataSets]: Loading backgrounds', bar_format='{desc}: {percentage:3.0f}%|{bar:20}{r_bar}'):
-            self.data = self.data.append(data, ignore_index=True)
-            self.labels += [0]*len(data)
-        self.weights = self.data[weight]
-        self.data = self.data[variables].to_numpy()
+            self.bkg_data = self.bkg_data.append(data, ignore_index=True)
+        self.data = np.concatenate([self.sig_data[variables].to_numpy(), self.bkg_data[variables].to_numpy()])
+        self.labels = [1]*len(self.sig_data) + [0]*len(self.bkg_data)
+        self.sig_weights = self.sig_data[weight]*(len(self.data)/2.)/(self.sig_data[weight].sum())
+        self.bkg_weights = self.bkg_data[weight]*(len(self.data)/2.)/(self.bkg_data[weight].sum())
+        self.weights = np.concatenate([self.sig_weights, self.bkg_weights])
 
         self.normalize = normalize
         if normalize:
