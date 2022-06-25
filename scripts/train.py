@@ -2,6 +2,7 @@
 import os
 from argparse import ArgumentParser
 import json
+import pickle
 import numpy as np
 import pandas as pd
 # import random
@@ -51,7 +52,7 @@ def train_loop(dataloader, model, loss_fn, optimizer):
             print(f"loss: {ls:>7f}  [{current:>5d}/{size:>5d}]")
 
 
-def test_loop(dataloader, model, loss_fn):
+def test_loop(dataloader, model, loss_fn, return_output=False):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
     test_loss, correct = 0, 0
@@ -78,6 +79,20 @@ def test_loop(dataloader, model, loss_fn):
     roc_auc = metric.roc_auc(scores, ys, ws)
 
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}, AUC: {roc_auc} \n")
+
+    if return_output:
+        return scores, ys, ws
+
+
+def transform_score(scores, save=False, output_path=""):
+    tsf = QuantileTransformer(n_quantiles=1000, output_distribution='uniform', subsample=1000000000, random_state=0)
+    tsf.fit(scores.reshape(-1, 1))
+
+    if save:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, 'wb') as f:
+            pickle.dump(tsf, f, -1)
+    return tsf
 
 
 def main():
@@ -123,7 +138,15 @@ def main():
         test_loop(val_dataloader, model, loss_fn)
     print("Done!")
 
+    val_scores, val_ys, val_ws = test_loop(val_dataloader, model, loss_fn, return_output=True)
+    test_scores, test_ys, test_ws = test_loop(test_dataloader, model, loss_fn, return_output=True)
+
+    signal_val_scores = val_scores[np.where(val_ys == 1)]
+    transform_score(signal_val_scores, save=args.save, output_path=f'{args.output_dir}/{config["algorithm"]}_{args.region}_tsf.pkl')
+
+
     if args.save:
+        os.makedirs(f'{args.output_dir}', exist_ok=True)
         torch.save(model, f'{args.output_dir}/{config["algorithm"]}_{args.region}.pth')
 
     return
