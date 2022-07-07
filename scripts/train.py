@@ -2,21 +2,23 @@
 import os
 from argparse import ArgumentParser
 import json
-import pickle
 import numpy as np
 import pandas as pd
 # import random
-from sklearn.preprocessing import StandardScaler, QuantileTransformer
+# from sklearn.preprocessing import StandardScaler, QuantileTransformer
 # from tabulate import tabulate
 # import matplotlib.pyplot as plt
-# from tqdm import tqdm
+from tqdm import tqdm
 from pdb import set_trace
 import torch
 from torch import nn
 from torch.utils.data import random_split, DataLoader
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from myTorch import hmumuDataSets, models, loss
-from utils import metric
-device = "cuda" if torch.cuda.is_available() else "cpu"
+from utils import metric, train
+dvc = "cuda" if torch.cuda.is_available() else "cpu"
+device = "gpu" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
 def getArgs():
@@ -34,67 +36,6 @@ def getArgs():
     return parser.parse_args()
 
 
-def train_loop(dataloader, model, loss_fn, optimizer):
-    size = len(dataloader.dataset)
-    for batch, (X, y, w) in enumerate(dataloader):
-        X, y, w = X.to(device), y.to(device), w.to(device)
-        # Compute prediction and loss
-        pred = model(X)
-        ls = loss_fn(pred, y.unsqueeze(1).double(), w.unsqueeze(1).double())
-
-        # Backpropagation
-        optimizer.zero_grad()
-        ls.backward()
-        optimizer.step()
-
-        if batch % 1000 == 0:
-            ls, current = ls.item(), batch * len(X)
-            print(f"loss: {ls:>7f}  [{current:>5d}/{size:>5d}]")
-
-
-def test_loop(dataloader, model, loss_fn, return_output=False):
-    size = len(dataloader.dataset)
-    num_batches = len(dataloader)
-    test_loss, correct = 0, 0
-
-    scores = []
-    ys = []
-    ws = []
-    with torch.no_grad():
-        for X, y, w in dataloader:
-            X, y, w = X.to(device), y.to(device), w.to(device)
-            pred = model(X)
-            scores.append(pred)
-            ys.append(y)
-            ws.append(w)
-            test_loss += (loss_fn(pred, y.unsqueeze(1).double(), w.unsqueeze(1).double())).item()
-            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
-
-    test_loss /= num_batches
-    correct /= size
-
-    scores = torch.cat(scores).cpu().numpy().reshape(-1)
-    ys = torch.cat(ys).cpu().numpy()
-    ws = torch.cat(ws).cpu().numpy()
-    roc_auc = metric.roc_auc(scores, ys, ws)
-
-    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}, AUC: {roc_auc} \n")
-
-    if return_output:
-        return scores, ys, ws
-
-
-def transform_score(scores, save=False, output_path=""):
-    tsf = QuantileTransformer(n_quantiles=1000, output_distribution='uniform', subsample=1000000000, random_state=0)
-    tsf.fit(scores.reshape(-1, 1))
-
-    if save:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        with open(output_path, 'wb') as f:
-            pickle.dump(tsf, f, -1)
-    return tsf
-
-
 def main():
 
     args=getArgs()
@@ -105,7 +46,7 @@ def main():
     data = hmumuDataSets.RootDataSets(
         input_dir=args.input_dir,
         sigs=config["train_signal"],
-        bkgs=config["train_background"],
+        bkgs="ttbar", #config["train_background"],
         tree=config["inputTree"],
         variables=config["train_variables"],
         cut=config.get("preselections"),
@@ -121,29 +62,29 @@ def main():
     	generator=torch.Generator().manual_seed(42)
     	)
 
-    train_dataloader = DataLoader(train_data, batch_size=64, shuffle=True)
-    val_dataloader = DataLoader(val_data, batch_size=64, shuffle=True)
-    test_dataloader = DataLoader(test_data, batch_size=64, shuffle=True)
+    train_dataloader = DataLoader(train_data, batch_size=64, shuffle=True, num_workers=12)
+    val_dataloader = DataLoader(val_data, batch_size=64, shuffle=False, num_workers=12)
+    test_dataloader = DataLoader(test_data, batch_size=64, shuffle=False, num_workers=12)
 
     if config["algorithm"] == "FCN":
-    	model = models.FCN(len(config["train_variables"]), number_of_nodes=config.get("number_of_nodes", [64, 32, 16, 8]), dropouts=config.get("dropouts", [1])).double().to(device)
+    	model = models.FCN(
+            len(config["train_variables"]),
+            number_of_nodes=config.get("number_of_nodes", [64, 32, 16, 8]),
+            dropouts=config.get("dropouts", [1]),
+            lr=config.get("learning_rate", 0.0001),
+            device=dvc
+        ).double().to(dvc)
 
-    loss_fn = loss.EventWeightedBCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.get("learning_rate", 0.0001), eps=1e-07)
+    trainer = Trainer(accelerator=device, devices=1, callbacks=[EarlyStopping(monitor="val_loss", mode="min", patience=10)])
+    trainer.fit(model, train_dataloader, val_dataloader)
 
-    epochs = 1
-    for t in range(epochs):
-        print(f"Epoch {t+1}\n-------------------------------")
-        train_loop(train_dataloader, model, loss_fn, optimizer)
-        test_loop(val_dataloader, model, loss_fn)
-    print("Done!")
+    # val_scores, val_ys, val_ws = test_loop(val_dataloader, model, loss_fn, return_output=True)
 
-    val_scores, val_ys, val_ws = test_loop(val_dataloader, model, loss_fn, return_output=True)
-    test_scores, test_ys, test_ws = test_loop(test_dataloader, model, loss_fn, return_output=True)
+    trainer.test(dataloaders=test_dataloader)
+    test_scores, test_ys, test_ws = model.test_scores, model.test_ys, model.test_ws
 
-    signal_val_scores = val_scores[np.where(val_ys == 1)]
-    transform_score(signal_val_scores, save=args.save, output_path=f'{args.output_dir}/{config["algorithm"]}_{args.region}_tsf.pkl')
-
+    signal_test_scores = test_scores[np.where(test_ys == 1)]
+    train.transform_score(signal_test_scores, save=args.save, output_path=f'{args.output_dir}/{config["algorithm"]}_{args.region}_tsf.pkl')
 
     if args.save:
         os.makedirs(f'{args.output_dir}', exist_ok=True)
