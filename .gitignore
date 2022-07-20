@@ -1,5 +1,6 @@
 skimmed_ntuples
 models
 outputs
+significances
 src/*/__pycache__/
 hmumumlenv
