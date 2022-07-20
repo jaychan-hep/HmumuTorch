@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
-import os
+import os, sys
 from argparse import ArgumentParser
 import json
 import numpy as np
 import pandas as pd
-# import random
-# from sklearn.preprocessing import StandardScaler, QuantileTransformer
-# from tabulate import tabulate
-# import matplotlib.pyplot as plt
 from tqdm import tqdm
-from pdb import set_trace
 import torch
 from torch import nn
 from torch.utils.data import random_split, DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
 from myTorch import hmumuDataSets, models, loss
-from utils import metric, train
+from utils import metric, train, plotting
 dvc = "cuda" if torch.cuda.is_available() else "cpu"
 device = "gpu" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
@@ -29,38 +25,65 @@ def getArgs():
     parser.add_argument('-o', '--output-dir', action='store', default='models', help='directory for outputs')
     parser.add_argument('-r', '--region', action='store', choices=['two_jet', 'one_jet', 'zero_jet', 'VBF', 'all_jet'], default='zero_jet', help='Region to process')
     parser.add_argument('-p', '--params', action='store', type=json.loads, default=None, help='json string.') #type=json.loads
-    parser.add_argument('--save', action='store_true', help='Save model weights to HDF5 file')
     parser.add_argument('--roc', action='store_true', help='Plot ROC')
     parser.add_argument('--skopt', action='store_true', default=False, help='Run hyperparameter tuning using skopt')
     parser.add_argument('--skopt-plot', action='store_true', default=False, help='Plot skopt results')
     return parser.parse_args()
 
-
 def main():
 
     args=getArgs()
+    if os.path.isdir(args.output_dir) and len(os.listdir(args.output_dir)) > 0:
+    	print("ERROR: Output directory not empty!! Please delete or move the directory.")
+    	sys.exit(1)
     with open(args.config, 'r') as stream:
         configs = json.loads(stream.read())
         config = configs[args.region]
 
-    data = hmumuDataSets.RootDataSets(
+    train_data = hmumuDataSets.RootDataSets(
         input_dir=args.input_dir,
         sigs=config["train_signal"],
-        bkgs="ttbar", #config["train_background"],
+        bkgs="ttbar",#config["train_background"],
         tree=config["inputTree"],
         variables=config["train_variables"],
+        weight=config["weight"],
+        random_index=config["randomIndex"],
+        split="train",
         cut=config.get("preselections"),
         sig_cut=config.get("signal_preselections"),
         bkg_cut=config.get("background_preselections"),
-        normalize=f"{args.output_dir}/std_scaler.pkl",
-        save=args.save
+        normalize=f"{args.output_dir}/std_scaler_{args.region}.pkl"
         )
 
-    train_data, val_data, test_data = random_split(
-    	data, 
-    	[int(len(data)*0.6), int(len(data)*0.2), len(data)-int(len(data)*0.6)-int(len(data)*0.2)],
-    	generator=torch.Generator().manual_seed(42)
-    	)
+    val_data = hmumuDataSets.RootDataSets(
+        input_dir=args.input_dir,
+        sigs=config["train_signal"],
+        bkgs="ttbar",#config["train_background"],
+        tree=config["inputTree"],
+        variables=config["train_variables"],
+        weight=config["weight"],
+        random_index=config["randomIndex"],
+        split="val",
+        cut=config.get("preselections"),
+        sig_cut=config.get("signal_preselections"),
+        bkg_cut=config.get("background_preselections"),
+        normalize=f"{args.output_dir}/std_scaler_{args.region}.pkl"
+        )
+
+    test_data = hmumuDataSets.RootDataSets(
+        input_dir=args.input_dir,
+        sigs=config["train_signal"],
+        bkgs="ttbar",#config["train_background"],
+        tree=config["inputTree"],
+        variables=config["train_variables"],
+        weight=config["weight"],
+        random_index=config["randomIndex"],
+        split="test",
+        cut=config.get("preselections"),
+        sig_cut=config.get("signal_preselections"),
+        bkg_cut=config.get("background_preselections"),
+        normalize=f"{args.output_dir}/std_scaler_{args.region}.pkl"
+        )
 
     train_dataloader = DataLoader(train_data, batch_size=64, shuffle=True, num_workers=12)
     val_dataloader = DataLoader(val_data, batch_size=64, shuffle=False, num_workers=12)
@@ -75,23 +98,30 @@ def main():
             device=dvc
         ).double().to(dvc)
 
-    trainer = Trainer(accelerator=device, devices=1, callbacks=[EarlyStopping(monitor="val_loss", mode="min", patience=10)])
-    trainer.fit(model, train_dataloader, val_dataloader)
+    callbacks = [EarlyStopping(monitor="val_loss", mode="min", patience=20, check_finite=False)]
+    callbacks.append(ModelCheckpoint(
+        save_top_k=1,
+        monitor="val_loss",
+        mode="min",
+        dirpath=f'{args.output_dir}/{config["algorithm"]}_{args.region}',
+        filename='test',
+    ))
 
-    # val_scores, val_ys, val_ws = test_loop(val_dataloader, model, loss_fn, return_output=True)
+    trainer = Trainer(accelerator=device, devices=1, callbacks=callbacks, default_root_dir=f'{args.output_dir}/{config["algorithm"]}_{args.region}')
+    trainer.fit(model, train_dataloader, val_dataloader)
 
     trainer.test(dataloaders=test_dataloader)
     test_scores, test_ys, test_ws = model.test_scores, model.test_ys, model.test_ws
 
-    signal_test_scores = test_scores[np.where(test_ys == 1)]
-    train.transform_score(signal_test_scores, save=args.save, output_path=f'{args.output_dir}/{config["algorithm"]}_{args.region}_tsf.pkl')
+    plotting.plot_score(test_scores, test_ys, test_ws, outname=f'{args.output_dir}/plots/{config["algorithm"]}_{args.region}_scores.pdf', save=True)
 
-    if args.save:
-        os.makedirs(f'{args.output_dir}', exist_ok=True)
-        torch.save(model, f'{args.output_dir}/{config["algorithm"]}_{args.region}.pth')
+    signal_test_scores = test_scores[np.where(test_ys == 1)]
+    signal_test_scores_t, tsf = train.fit_and_transform_score(signal_test_scores, save=True, output_path=f'{args.output_dir}/{config["algorithm"]}_{args.region}_tsf.pkl')
+
+    test_scores_t = train.transform_score(test_scores, tsf=tsf)
+    plotting.plot_score(test_scores_t, test_ys, test_ws, outname=f'{args.output_dir}/plots/{config["algorithm"]}_{args.region}_scores_t.pdf', save=True)
 
     return
-
 
 if __name__ == '__main__':
     main()

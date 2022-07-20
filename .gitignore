@@ -1,2 +1,5 @@
-models/
+skimmed_ntuples
+models
+outputs
 src/*/__pycache__/
+hmumumlenv
