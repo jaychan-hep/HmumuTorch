@@ -106,25 +106,25 @@ def main():
     ))
 
     trainer = Trainer(accelerator=device, devices=1, callbacks=callbacks, default_root_dir=f'{args.output_dir}/{config["algorithm"]}_{args.region}')
-    # trainer.fit(model, train_dataloader, val_dataloader)
+    trainer.fit(model, train_dataloader, val_dataloader)
 
     print("Done.")
     print("===========================================================================================================")
     print("                                      Evaluating whole training set")
     print("===========================================================================================================")
-    trainer.test(model=model, dataloaders=train_for_test_dataloader, ckpt_path=f'models/{config["algorithm"]}_{args.region}/test.ckpt')
+    trainer.test(model=model, dataloaders=train_for_test_dataloader, ckpt_path=f'{args.output_dir}/{config["algorithm"]}_{args.region}/test.ckpt')
     train_scores, train_ys, train_ws = model.test_scores, model.test_ys, model.test_ws
 
     print("===========================================================================================================")
     print("                                     Evaluating whole validation set")
     print("===========================================================================================================")
-    trainer.test(model=model, dataloaders=val_dataloader, ckpt_path=f'models/{config["algorithm"]}_{args.region}/test.ckpt')
+    trainer.test(model=model, dataloaders=val_dataloader, ckpt_path=f'{args.output_dir}/{config["algorithm"]}_{args.region}/test.ckpt')
     val_scores, val_ys, val_ws = model.test_scores, model.test_ys, model.test_ws
 
     print("===========================================================================================================")
     print("                                       Evaluating whole test set")
     print("===========================================================================================================")
-    trainer.test(model=model, dataloaders=test_dataloader, ckpt_path=f'models/{config["algorithm"]}_{args.region}/test.ckpt')
+    trainer.test(model=model, dataloaders=test_dataloader, ckpt_path=f'{args.output_dir}/{config["algorithm"]}_{args.region}/test.ckpt')
     test_scores, test_ys, test_ws = model.test_scores, model.test_ys, model.test_ws
 
     plotting.plotROC(test_scores, test_ys, test_ws, train_scores, train_ys, train_ws, val_scores, val_ys, val_ws, outname=f'{args.output_dir}/plots/{config["algorithm"]}_{args.region}_roc.pdf', save=True)
