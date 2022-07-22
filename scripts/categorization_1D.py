@@ -131,7 +131,7 @@ def categorizing(region, variable, sigs, bkgs, nscan, minN, transform, nbin, flo
         t_bkgmc.Draw(f"{variable}_score{'_t' if transform else ''}>>h_bkgmc_sid", "weight*((m_mumu>=110&&m_mumu<=180)&&!(m_mumu>=120&&m_mumu<=130))")
     if estimate in ["fullSimrw", "data_sid"]:
         h_data_sid = TH1F('h_data_sid', 'h_data_sid', nscan, 0., 1.)
-        t_data_sid.Draw(f"{variable}_score{'_t' if transform else ''}>>h_data_sid", "weight*%f*((m_mumu>=110&&m_mumu<=180)&&!(m_mumu>=120&&m_mumu<=130)&&(eventNumber%%%d!=%d))"%(n_fold/(n_fold-1.) if n_fold != 1 else 1, n_fold, fold if n_fold != 1 else 1))
+        t_data_sid.Draw(f"{variable}_score{'_t' if transform else ''}>>h_data_sid", "weight*((m_mumu>=110&&m_mumu<=180)&&!(m_mumu>=120&&m_mumu<=130))")
 
     if estimate == "data_sid":
         h_data_sid.Scale(0.2723)

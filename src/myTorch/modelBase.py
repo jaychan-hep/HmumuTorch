@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-import os, sys
+import sys
 import torch
 from torch import nn
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
 from torch.optim import Adam
 from pytorch_lightning import LightningModule
 from utils import metric
@@ -105,8 +103,8 @@ class hmumuModel(LightningModule):
         self.log("test_loss", self.test_loss)
         self.log("test_auc", self.test_roc_auc)
 
-        sys.stdout.write('Finished. \n')
-        sys.stdout.write(f'Test loss - {self.test_loss}, Test AUC - {self.test_roc_auc} \n')
+        # sys.stdout.write('Finished. \n')
+        # sys.stdout.write(f'Test loss - {self.test_loss}, Test AUC - {self.test_roc_auc} \n')
 
     def configure_optimizers(self):
         return Adam(self.parameters(), lr=self.lr, eps=self.eps)

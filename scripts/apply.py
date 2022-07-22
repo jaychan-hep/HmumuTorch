@@ -2,14 +2,10 @@
 import os, sys
 from argparse import ArgumentParser
 import json
-import numpy as np
-import pandas as pd
-from tqdm import tqdm
 import torch
 from torch import nn
 from torch.utils.data import random_split, DataLoader
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from myTorch import hmumuDataSets, models, loss
 import uproot
 from utils import metric, train
@@ -34,7 +30,7 @@ def apply(sample, train_configs, apply_config, args, variables, output_subdir):
     data = hmumuDataSets.RootApplyDataSets(
         input_dir=args.input_dir,
         samples=sample,
-        tree=args.region,
+        tree=apply_config["inputTree"],
         variables=variables,
         observables=apply_config.get("observables", list()),
         cut=apply_config.get("preselections"),
@@ -44,7 +40,7 @@ def apply(sample, train_configs, apply_config, args, variables, output_subdir):
         apply_data = hmumuDataSets.RootApplyDataSets(
             input_dir=args.input_dir,
             samples=sample,
-            tree=args.region,
+            tree=apply_config["inputTree"],
             variables=train_configs[model]["train_variables"],
             cut=apply_config.get("preselections"),
             normalize=f"{args.model_dir}/std_scaler_{model}.pkl",
@@ -61,10 +57,10 @@ def apply(sample, train_configs, apply_config, args, variables, output_subdir):
             ).double().to(dvc)
 
         trainer = Trainer(accelerator=device, devices=1)
-        trainer.test(model=md, dataloaders=dataloader, ckpt_path=f'{args.model_dir}/{train_configs[model]["algorithm"]}_{model}/test.ckpt')
+        trainer.test(model=md, dataloaders=dataloader, ckpt_path=f'{args.model_dir}/{train_configs[model]["algorithm"]}_{model}/test.ckpt', verbose=False)
         scores, ys, ws = md.test_scores, md.test_ys, md.test_ws
 
-        scores_t = train.transform_score(scores, f'{args.model_dir}/{train_configs[model]["algorithm"]}_{args.region}_tsf.pkl')
+        scores_t = train.transform_score(scores, f'{args.model_dir}/{train_configs[model]["algorithm"]}_{model}_tsf.pkl')
         data.extended_data[apply_config["models"][model]] = scores
         data.extended_data[apply_config["models"][model] + "_t"] = scores_t
     with uproot.recreate(f"{output_subdir}/{sample}.root") as f:
@@ -74,9 +70,6 @@ def apply(sample, train_configs, apply_config, args, variables, output_subdir):
 def main():
 
     args=getArgs()
-    if os.path.isdir(args.output_dir) and len(os.listdir(args.output_dir)) > 0:
-        print("ERROR: Output directory not empty!! Please delete or move the directory.")
-        sys.exit(1)
 
     with open(args.inputConfig) as f:
         config = json.load(f)
@@ -91,10 +84,14 @@ def main():
     for model in apply_config["models"]:
         variables = variables|set(train_configs[model]["train_variables"])
     variables = list(variables)
-    print(variables)
+    # print(variables)
 
     output_subdir = f"{args.output_dir}/{args.region}"
     os.makedirs(output_subdir, exist_ok=True)
+
+    if os.path.isdir(output_subdir) and len(os.listdir(output_subdir)) > 0:
+        print("ERROR: Output directory not empty!! Please delete or move the directory.")
+        sys.exit(1)
 
     for sample in sample_list:
         if args.samples and sample not in args.samples: continue

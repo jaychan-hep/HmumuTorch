@@ -3,8 +3,6 @@ import os, sys
 from argparse import ArgumentParser
 import json
 import numpy as np
-import pandas as pd
-from tqdm import tqdm
 import torch
 from torch import nn
 from torch.utils.data import random_split, DataLoader
@@ -12,7 +10,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
 from myTorch import hmumuDataSets, models, loss
-from utils import metric, train, plotting
+from utils import train, plotting
 dvc = "cuda" if torch.cuda.is_available() else "cpu"
 device = "gpu" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
@@ -24,26 +22,25 @@ def getArgs():
     parser.add_argument('-i', '--input-dir', action='store', default='skimmed_ntuples', help='directory of training inputs')
     parser.add_argument('-o', '--output-dir', action='store', default='models', help='directory for outputs')
     parser.add_argument('-r', '--region', action='store', choices=['two_jet', 'one_jet', 'zero_jet', 'VBF', 'all_jet'], default='zero_jet', help='Region to process')
-    parser.add_argument('-p', '--params', action='store', type=json.loads, default=None, help='json string.') #type=json.loads
-    parser.add_argument('--roc', action='store_true', help='Plot ROC')
-    parser.add_argument('--skopt', action='store_true', default=False, help='Run hyperparameter tuning using skopt')
-    parser.add_argument('--skopt-plot', action='store_true', default=False, help='Plot skopt results')
+    # parser.add_argument('-p', '--params', action='store', type=json.loads, default=None, help='json string.') #type=json.loads
+    # parser.add_argument('--skopt', action='store_true', default=False, help='Run hyperparameter tuning using skopt')
+    # parser.add_argument('--skopt-plot', action='store_true', default=False, help='Plot skopt results')
     return parser.parse_args()
 
 def main():
 
     args=getArgs()
-    if os.path.isdir(args.output_dir) and len(os.listdir(args.output_dir)) > 0:
-    	print("ERROR: Output directory not empty!! Please delete or move the directory.")
-    	sys.exit(1)
     with open(args.config, 'r') as stream:
         configs = json.loads(stream.read())
         config = configs[args.region]
+    if os.path.isdir(f'{args.output_dir}/{config["algorithm"]}_{args.region}') and len(f'{args.output_dir}/{config["algorithm"]}_{args.region}') > 0:
+    	print("ERROR: Output directory not empty!! Please delete or move the directory.")
+    	sys.exit(1)
 
     train_data = hmumuDataSets.RootDataSets(
         input_dir=args.input_dir,
         sigs=config["train_signal"],
-        bkgs="ttbar",#config["train_background"],
+        bkgs=config["train_background"],
         tree=config["inputTree"],
         variables=config["train_variables"],
         weight=config["weight"],
@@ -58,7 +55,7 @@ def main():
     val_data = hmumuDataSets.RootDataSets(
         input_dir=args.input_dir,
         sigs=config["train_signal"],
-        bkgs="ttbar",#config["train_background"],
+        bkgs=config["train_background"],
         tree=config["inputTree"],
         variables=config["train_variables"],
         weight=config["weight"],
@@ -73,7 +70,7 @@ def main():
     test_data = hmumuDataSets.RootDataSets(
         input_dir=args.input_dir,
         sigs=config["train_signal"],
-        bkgs="ttbar",#config["train_background"],
+        bkgs=config["train_background"],
         tree=config["inputTree"],
         variables=config["train_variables"],
         weight=config["weight"],
@@ -86,6 +83,7 @@ def main():
         )
 
     train_dataloader = DataLoader(train_data, batch_size=64, shuffle=True, num_workers=12)
+    train_for_test_dataloader = DataLoader(train_data, batch_size=64, shuffle=False, num_workers=12)
     val_dataloader = DataLoader(val_data, batch_size=64, shuffle=False, num_workers=12)
     test_dataloader = DataLoader(test_data, batch_size=64, shuffle=False, num_workers=12)
 
@@ -108,10 +106,28 @@ def main():
     ))
 
     trainer = Trainer(accelerator=device, devices=1, callbacks=callbacks, default_root_dir=f'{args.output_dir}/{config["algorithm"]}_{args.region}')
-    trainer.fit(model, train_dataloader, val_dataloader)
+    # trainer.fit(model, train_dataloader, val_dataloader)
 
-    trainer.test(dataloaders=test_dataloader)
+    print("Done.")
+    print("===========================================================================================================")
+    print("                                      Evaluating whole training set")
+    print("===========================================================================================================")
+    trainer.test(model=model, dataloaders=train_for_test_dataloader, ckpt_path=f'models/{config["algorithm"]}_{args.region}/test.ckpt')
+    train_scores, train_ys, train_ws = model.test_scores, model.test_ys, model.test_ws
+
+    print("===========================================================================================================")
+    print("                                     Evaluating whole validation set")
+    print("===========================================================================================================")
+    trainer.test(model=model, dataloaders=val_dataloader, ckpt_path=f'models/{config["algorithm"]}_{args.region}/test.ckpt')
+    val_scores, val_ys, val_ws = model.test_scores, model.test_ys, model.test_ws
+
+    print("===========================================================================================================")
+    print("                                       Evaluating whole test set")
+    print("===========================================================================================================")
+    trainer.test(model=model, dataloaders=test_dataloader, ckpt_path=f'models/{config["algorithm"]}_{args.region}/test.ckpt')
     test_scores, test_ys, test_ws = model.test_scores, model.test_ys, model.test_ws
+
+    plotting.plotROC(test_scores, test_ys, test_ws, train_scores, train_ys, train_ws, val_scores, val_ys, val_ws, outname=f'{args.output_dir}/plots/{config["algorithm"]}_{args.region}_roc.pdf', save=True)
 
     plotting.plot_score(test_scores, test_ys, test_ws, outname=f'{args.output_dir}/plots/{config["algorithm"]}_{args.region}_scores.pdf', save=True)
 
