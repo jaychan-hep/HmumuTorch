@@ -34,51 +34,13 @@ def main():
         configs = json.loads(stream.read())
         config = configs[args.region]
     if os.path.isdir(f'{args.output_dir}/{config["algorithm"]}_{args.region}') and len(f'{args.output_dir}/{config["algorithm"]}_{args.region}') > 0:
-    	print("ERROR: Output directory not empty!! Please delete or move the directory.")
-    	sys.exit(1)
+        print("ERROR: Output directory not empty!! Please delete or move the directory.")
+        sys.exit(1)
 
-    train_data = hmumuDataSets.RootDataSets(
+    train_data, val_data, test_data = hmumuDataSets.load_data_train_val_test_split(
+    	dataset_class=config.get("dataset_class", "RootDataSets"),
         input_dir=args.input_dir,
-        sigs=config["train_signal"],
-        bkgs=config["train_background"],
-        tree=config["inputTree"],
-        variables=config["train_variables"],
-        weight=config["weight"],
-        random_index=config["randomIndex"],
-        split="train",
-        cut=config.get("preselections"),
-        sig_cut=config.get("signal_preselections"),
-        bkg_cut=config.get("background_preselections"),
-        normalize=f"{args.output_dir}/std_scaler_{args.region}.pkl"
-        )
-
-    val_data = hmumuDataSets.RootDataSets(
-        input_dir=args.input_dir,
-        sigs=config["train_signal"],
-        bkgs=config["train_background"],
-        tree=config["inputTree"],
-        variables=config["train_variables"],
-        weight=config["weight"],
-        random_index=config["randomIndex"],
-        split="val",
-        cut=config.get("preselections"),
-        sig_cut=config.get("signal_preselections"),
-        bkg_cut=config.get("background_preselections"),
-        normalize=f"{args.output_dir}/std_scaler_{args.region}.pkl"
-        )
-
-    test_data = hmumuDataSets.RootDataSets(
-        input_dir=args.input_dir,
-        sigs=config["train_signal"],
-        bkgs=config["train_background"],
-        tree=config["inputTree"],
-        variables=config["train_variables"],
-        weight=config["weight"],
-        random_index=config["randomIndex"],
-        split="test",
-        cut=config.get("preselections"),
-        sig_cut=config.get("signal_preselections"),
-        bkg_cut=config.get("background_preselections"),
+        **config["dataset_settings"],
         normalize=f"{args.output_dir}/std_scaler_{args.region}.pkl"
         )
 
@@ -87,14 +49,11 @@ def main():
     val_dataloader = DataLoader(val_data, batch_size=64, shuffle=False, num_workers=12)
     test_dataloader = DataLoader(test_data, batch_size=64, shuffle=False, num_workers=12)
 
-    if config["algorithm"] == "FCN":
-    	model = models.FCN(
-            len(config["train_variables"]),
-            number_of_nodes=config.get("number_of_nodes", [64, 32, 16, 8]),
-            dropouts=config.get("dropouts", [1]),
-            lr=config.get("learning_rate", 0.0001),
-            device=dvc
-        ).double().to(dvc)
+    model = getattr(models, config["algorithm"])(
+        params=config["params"],
+        lr=config.get("learning_rate", 0.0001),
+        device=dvc
+    ).double().to(dvc)
 
     callbacks = [EarlyStopping(monitor="val_loss", mode="min", patience=20, check_finite=False)]
     callbacks.append(ModelCheckpoint(

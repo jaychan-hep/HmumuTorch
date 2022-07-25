@@ -1,50 +1,66 @@
 {"zero_jet": {
-       "train_signal": "{ggF,VBF}",
-       "train_background": "{Z,ttbar,diboson,stop}",
-       "inputTree": "zero_jet",
-       "preselections": "(m_mumu>120)&(m_mumu<130)",
-       "train_variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar"],
-       "randomIndex": "eventNumber", "weight": "weight",
+       "dataset_class": "RootDataSets",
+       "dataset_settings": {
+             "sigs": "{ggF,VBF}",
+             "bkgs": "{Z,ttbar,diboson,stop}",
+             "tree": "zero_jet",
+             "cut": "(m_mumu>120)&(m_mumu<130)",
+             "variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar"],
+             "random_index": "eventNumber", "weight": "weight"
+             },
        "algorithm": "FCN",
-       "learning_rate": 0.0001
+       "learning_rate": 0.0001,
+       "params": {"number_of_variables": 3}
        },
  "one_jet": {
-       "train_signal": "{ggF,VBF}",
-       "train_background": "{Z,ttbar,diboson,stop}",
-       "inputTree": "one_jet",
-       "preselections": "(m_mumu>120)&(m_mumu<130)",
-       "train_variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar",
+       "dataset_class": "RootDataSets",
+       "dataset_settings": {
+             "sigs": "{ggF,VBF}",
+             "bkgs": "{Z,ttbar,diboson,stop}",
+             "tree": "one_jet",
+             "cut": "(m_mumu>120)&(m_mumu<130)",
+             "variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar",
                            "Jets_PT_Lead", "Jets_Eta_Lead", "DeltaPhi_mumuj1", "Jets_QGscore_Lead"],
-       "randomIndex": "eventNumber", "weight": "weight",
+             "random_index": "eventNumber", "weight": "weight"
+             },
        "algorithm": "FCN",
-       "learning_rate": 0.0001
+       "learning_rate": 0.0001,
+       "params": {"number_of_variables": 7}
        },
  "two_jet": {
-       "train_signal": "{ggF,VBF}",
-       "train_background": "{Z,ttbar,diboson,stop}",
-       "inputTree": "two_jet",
-       "preselections": "(m_mumu>120)&(m_mumu<130)",
-       "train_variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar",
+       "dataset_class": "RootDataSets",
+       "dataset_settings": {
+             "sigs": "{ggF,VBF}",
+             "bkgs": "{Z,ttbar,diboson,stop}",
+             "tree": "two_jet",
+             "cut": "(m_mumu>120)&(m_mumu<130)",
+             "variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar",
                            "Jets_PT_Lead", "Jets_Eta_Lead", "DeltaPhi_mumuj1", "Jets_QGscore_Lead",
                            "Jets_PT_Sub", "Jets_Eta_Sub", "DeltaPhi_mumuj2", "Jets_QGscore_Sub",
                            "Jets_PT_jj", "Jets_Y_jj", "DeltaPhi_mumujj", "Jets_Minv_jj",
                            "Event_MET", "Event_Ht-Muons_PT_Lead-Muons_PT_Sub"],
-       "randomIndex": "eventNumber", "weight": "weight",
+             "random_index": "eventNumber", "weight": "weight"
+             },
        "algorithm": "FCN",
-       "learning_rate": 0.0005
+       "learning_rate": 0.0005,
+       "params": {"number_of_variables": 17}
        },
  "VBF": {
-       "train_signal": "VBF",
-       "train_background": "{Z,ttbar,diboson,stop}",
-       "inputTree": "two_jet",
-       "preselections": "(m_mumu>120)&(m_mumu<130)",
-       "train_variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar",
+       "dataset_class": "RootDataSets",
+       "dataset_settings": {
+             "sigs": "VBF",
+             "bkgs": "{Z,ttbar,diboson,stop}",
+             "tree": "two_jet",
+             "cut": "(m_mumu>120)&(m_mumu<130)",
+             "variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar",
                            "Jets_PT_Lead", "Jets_Eta_Lead", "DeltaPhi_mumuj1", "Jets_QGscore_Lead",
                            "Jets_PT_Sub", "Jets_Eta_Sub", "DeltaPhi_mumuj2", "Jets_QGscore_Sub",
                            "Jets_PT_jj", "Jets_Y_jj", "DeltaPhi_mumujj", "Jets_Minv_jj",
                            "Event_MET", "Event_Ht-Muons_PT_Lead-Muons_PT_Sub"],
-       "randomIndex": "eventNumber", "weight": "weight",
+             "random_index": "eventNumber", "weight": "weight"
+             },
        "algorithm": "FCN",
-       "learning_rate": 0.001
+       "learning_rate": 0.001,
+       "params": {"number_of_variables": 17}
        }
 }
