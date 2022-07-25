@@ -27,34 +27,30 @@ def getArgs():
 
 
 def apply(sample, train_configs, apply_config, args, variables, output_subdir):
-    data = hmumuDataSets.RootApplyDataSets(
+    data = hmumuDataSets.ApplyRootDataSets(
         input_dir=args.input_dir,
         samples=sample,
-        tree=apply_config["inputTree"],
         variables=variables,
-        observables=apply_config.get("observables", list()),
-        cut=apply_config.get("preselections"),
+        **apply_config["dataset_settings"],
         normalize=None
     )
     for model in apply_config["models"]:
-        apply_data = hmumuDataSets.RootApplyDataSets(
+        train_dataset_settings = {key: value for key, value in train_configs[model]["dataset_settings"].items()
+            if key not in {"sigs", "bkgs", "tree", "cut", "sig_cut", "bkg_cut", "weight"}}
+        apply_data = getattr(hmumuDataSets, f'Apply{train_configs[model]["dataset_class"]}')(
             input_dir=args.input_dir,
             samples=sample,
-            tree=apply_config["inputTree"],
-            variables=train_configs[model]["train_variables"],
-            cut=apply_config.get("preselections"),
+            **train_dataset_settings,
+            **apply_config["dataset_settings"],
             normalize=f"{args.model_dir}/std_scaler_{model}.pkl",
         )
         dataloader = DataLoader(apply_data, batch_size=64, shuffle=False, num_workers=12)
 
-        if train_configs[model]["algorithm"] == "FCN":
-            md = models.FCN(
-                len(train_configs[model]["train_variables"]),
-                number_of_nodes=train_configs[model].get("number_of_nodes", [64, 32, 16, 8]),
-                dropouts=train_configs[model].get("dropouts", [1]),
-                lr=train_configs[model].get("learning_rate", 0.0001),
-                device=dvc
-            ).double().to(dvc)
+        md = getattr(models, train_configs[model]["algorithm"])(
+            params=train_configs[model]["params"],
+            lr=train_configs[model].get("learning_rate", 0.0001),
+            device=dvc
+        ).double().to(dvc)
 
         trainer = Trainer(accelerator=device, devices=1)
         trainer.test(model=md, dataloaders=dataloader, ckpt_path=f'{args.model_dir}/{train_configs[model]["algorithm"]}_{model}/test.ckpt', verbose=False)
@@ -82,7 +78,7 @@ def main():
 
     variables = set()
     for model in apply_config["models"]:
-        variables = variables|set(train_configs[model]["train_variables"])
+        variables = variables|set(train_configs[model]["dataset_settings"]["variables"])
     variables = list(variables)
     # print(variables)
 

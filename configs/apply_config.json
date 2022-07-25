@@ -1,23 +1,29 @@
 {
     "zero_jet":
         {
-            "inputTree": "zero_jet",
-            "observables": ["m_mumu", "eventNumber", "weight"],
-            "preselections": "(m_mumu>110)&(m_mumu<180)",
+            "dataset_settings": {
+             "tree": "zero_jet",
+             "cut": "(m_mumu>110)&(m_mumu<180)",
+             "observables": ["m_mumu", "eventNumber", "weight"]
+             },
             "models": {"zero_jet": "NN_score"}
         },
     "one_jet":
         {
-            "inputTree": "one_jet",
-            "observables": ["m_mumu", "eventNumber", "weight"],
-            "preselections": "(m_mumu>110)&(m_mumu<180)",
-            "models": {"one_jet": "NN_score"}
+            "dataset_settings": {
+             "tree": "one_jet",
+             "cut": "(m_mumu>110)&(m_mumu<180)",
+             "observables": ["m_mumu", "eventNumber", "weight"]
+             },
+             "models": {"one_jet": "NN_score"}
         },
     "two_jet":
         {
-            "inputTree": "two_jet",
-            "observables": ["m_mumu", "eventNumber", "weight", "n_j", "Event_Ht", "Muons_PT_Lead", "Muons_PT_Sub"],
-            "preselections": "(m_mumu>110)&(m_mumu<180)",
+            "dataset_settings": {
+             "tree": "two_jet",
+             "cut": "(m_mumu>110)&(m_mumu<180)",
+             "observables": ["m_mumu", "eventNumber", "weight", "n_j", "Event_Ht", "Muons_PT_Lead", "Muons_PT_Sub"]
+             },
             "models": {"two_jet": "NN_score", "VBF": "NN_score_VBF"}
         }
 }

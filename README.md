@@ -67,7 +67,7 @@ The whole ML task consists of training, applying the weights, optimizing the sco
 The training script `train.py` will train the model, and transform the output scores such that the unweighted signal distribution is flat. The detailed settings, including the preselections, training variables, hyperparameters, etc, are specified in the config file such as `configs/training_config_FCN.json`.
 
 ```
-python scripts/train_bdt.py --help
+python scripts/train.py --help
 usage: train.py [-h] [-c CONFIG] [-i INPUT_DIR] [-o OUTPUT_DIR]
                 [-r {two_jet,one_jet,zero_jet,VBF,all_jet}]
 

@@ -9,6 +9,10 @@ import uproot
 from sklearn.preprocessing import StandardScaler
 import pickle
 
+def load_data_train_val_test_split(dataset_class, *args, **kwargs):
+    dataset_cl = globals()[dataset_class]
+    return dataset_cl(split="train", *args, **kwargs), dataset_cl(split="val", *args, **kwargs), dataset_cl(split="test", *args, **kwargs)
+
 class RootDataSets(Dataset):
     def __init__(self, input_dir, tree, sigs, bkgs, variables=list(), weight="weight", random_index="eventNumber", split=None, cut=None, sig_cut=None, bkg_cut=None, normalize=None, save=True, step_size=5000000):
         if cut:
@@ -64,7 +68,7 @@ class RootDataSets(Dataset):
         weight = self.weights[idx]
         return data, label, weight
 
-class RootApplyDataSets(Dataset):
+class ApplyRootDataSets(Dataset):
     def __init__(self, input_dir, samples, tree, variables=list(), observables=list(), random_index="eventNumber", split=None, cut=None, normalize=None, save=True, step_size=5000000):
         if split == "train":
             cut = f"({cut})&(({random_index}%4==0)|({random_index}%4==1))" if cut else f"({random_index}%4==0)|({random_index}%4==1)"
@@ -92,3 +96,27 @@ class RootApplyDataSets(Dataset):
     def __getitem__(self, idx):
         data = torch.from_numpy(self.data[idx])
         return data, 1, 1.
+
+class RootObjectStructureDataSets(RootDataSets):
+    def __init__(self, object_variables=list(), other_variables=list(), *args, **kwargs):
+        super(RootObjectStructureDataSets, self).__init__(*args, **kwargs)
+        self.object_variables = object_variables
+        self.other_variables = other_variables
+
+    def __getitem__(self, idx):
+        object_data = torch.from_numpy(self.data[:, self.object_variables][idx])
+        other_data = torch.from_numpy(self.data[:, self.other_variables][idx])
+        label = self.labels[idx]
+        weight = self.weights[idx]
+        return [object_data, other_data], label, weight
+
+class ApplyRootObjectStructureDataSets(ApplyRootDataSets):
+    def __init__(self, object_variables=list(), other_variables=list(), *args, **kwargs):
+        super(ApplyRootObjectStructureDataSets, self).__init__(*args, **kwargs)
+        self.object_variables = object_variables
+        self.other_variables = other_variables
+
+    def __getitem__(self, idx):
+        object_data = torch.from_numpy(self.data[:, self.object_variables][idx])
+        other_data = torch.from_numpy(self.data[:, self.other_variables][idx])
+        return [object_data, other_data], 1, 1.
