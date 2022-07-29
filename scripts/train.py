@@ -50,10 +50,11 @@ def main():
     test_dataloader = DataLoader(test_data, batch_size=64, shuffle=False, num_workers=12)
 
     model = getattr(models, config["algorithm"])(
-        params=config["params"],
+        **config["params"],
         lr=config.get("learning_rate", 0.0001),
         device=dvc
     ).double().to(dvc)
+    print(model)
 
     callbacks = [EarlyStopping(monitor="val_loss", mode="min", patience=20, check_finite=False)]
     callbacks.append(ModelCheckpoint(

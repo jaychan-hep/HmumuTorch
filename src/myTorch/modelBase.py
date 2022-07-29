@@ -21,21 +21,27 @@ class hmumuModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         X, y, w = batch
-        X, y, w = X.to(self.dvc), y.to(self.dvc), w.to(self.dvc)
+        if type(X) == list:
+            X = [x.to(self.dvc) for x in X]
+        y, w = y.to(self.dvc), w.to(self.dvc)
         logits = self(X)
         ls = self.loss_fn(logits, y.unsqueeze(1).double(), w.unsqueeze(1).double())
         return {"loss": ls, "score": logits.detach(), "target": y, "weight": w}
 
     def validation_step(self, batch, batch_idx):
         X, y, w = batch
-        X, y, w = X.to(self.dvc), y.to(self.dvc), w.to(self.dvc)
+        if type(X) == list:
+            X = [x.to(self.dvc) for x in X]
+        y, w = y.to(self.dvc), w.to(self.dvc)
         logits = self(X)
         ls = self.loss_fn(logits, y.unsqueeze(1).double(), w.unsqueeze(1).double())
         return {"loss": ls, "score": logits.detach(), "target": y, "weight": w}
 
     def test_step(self, batch, batch_idx):
         X, y, w = batch
-        X, y, w = X.to(self.dvc), y.to(self.dvc), w.to(self.dvc)
+        if type(X) == list:
+            X = [x.to(self.dvc) for x in X]
+        y, w = y.to(self.dvc), w.to(self.dvc)
         logits = self(X)
         ls = self.loss_fn(logits, y.unsqueeze(1).double(), w.unsqueeze(1).double())
         return {"loss": ls, "score": logits.detach(), "target": y, "weight": w}

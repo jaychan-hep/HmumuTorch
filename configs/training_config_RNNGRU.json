@@ -1,0 +1,84 @@
+{"zero_jet": {
+       "dataset_class": "RootDataSets",
+       "dataset_settings": {
+             "sigs": "{ggF,VBF}",
+             "bkgs": "{Z,ttbar,diboson,stop}",
+             "tree": "zero_jet",
+             "cut": "(m_mumu>120)&(m_mumu<130)",
+             "variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar"],
+             "random_index": "eventNumber", "weight": "weight"
+             },
+       "algorithm": "FCN",
+       "learning_rate": 0.0001,
+       "params": {"number_of_variables": 3}
+       },
+ "one_jet": {
+       "dataset_class": "RootDataSets",
+       "dataset_settings": {
+             "sigs": "{ggF,VBF}",
+             "bkgs": "{Z,ttbar,diboson,stop}",
+             "tree": "one_jet",
+             "cut": "(m_mumu>120)&(m_mumu<130)",
+             "variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar",
+                           "Jets_PT_Lead", "Jets_Eta_Lead", "DeltaPhi_mumuj1", "Jets_QGscore_Lead"],
+             "random_index": "eventNumber", "weight": "weight"
+             },
+       "algorithm": "FCN",
+       "learning_rate": 0.0001,
+       "params": {"number_of_variables": 7}
+       },
+ "two_jet": {
+       "dataset_class": "RootObjectStructureDataSets",
+       "dataset_settings": {
+             "sigs": "{ggF,VBF}",
+             "bkgs": "{Z,ttbar,diboson,stop}",
+             "tree": "two_jet",
+             "cut": "(m_mumu>120)&(m_mumu<130)",
+             "variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar",
+                           "Jets_PT_Lead", "Jets_Eta_Lead", "DeltaPhi_mumuj1", "Jets_QGscore_Lead",
+                           "Jets_PT_Sub", "Jets_Eta_Sub", "DeltaPhi_mumuj2", "Jets_QGscore_Sub",
+                           "Jets_PT_jj", "Jets_Y_jj", "DeltaPhi_mumujj", "Jets_Minv_jj",
+                           "Event_MET", "Event_Ht-Muons_PT_Lead-Muons_PT_Sub"],
+             "object_variables": [[3, 4, 5, 6], [7, 8, 9, 10]],
+             "other_variables": [0, 1, 2, 11, 12, 13, 14, 15, 16],
+             "random_index": "eventNumber", "weight": "weight"
+             },
+       "algorithm": "RNNGRU",
+       "learning_rate": 0.0005,
+       "params": {
+            "number_of_inputs_per_object": 4,
+            "number_of_other_variables": 9,
+            "number_of_objects": 2,
+            "number_of_GRUnodes": [16, 12], "GRUdropouts": [1],
+            "number_of_postGRUnodes": [16], "postGRUdropouts": [],
+            "number_of_nodes": [64, 32, 16], "dropouts": []
+            }
+       },
+ "VBF": {
+       "dataset_class": "RootObjectStructureDataSets",
+       "dataset_settings": {
+             "sigs": "VBF",
+             "bkgs": "{Z,ttbar,diboson,stop}",
+             "tree": "two_jet",
+             "cut": "(m_mumu>120)&(m_mumu<130)",
+             "variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar",
+                           "Jets_PT_Lead", "Jets_Eta_Lead", "DeltaPhi_mumuj1", "Jets_QGscore_Lead",
+                           "Jets_PT_Sub", "Jets_Eta_Sub", "DeltaPhi_mumuj2", "Jets_QGscore_Sub",
+                           "Jets_PT_jj", "Jets_Y_jj", "DeltaPhi_mumujj", "Jets_Minv_jj",
+                           "Event_MET", "Event_Ht-Muons_PT_Lead-Muons_PT_Sub"],
+             "object_variables": [[3, 4, 5, 6], [7, 8, 9, 10]],
+             "other_variables": [0, 1, 2, 11, 12, 13, 14, 15, 16],
+             "random_index": "eventNumber", "weight": "weight"
+             },
+       "algorithm": "RNNGRU",
+       "learning_rate": 0.001,
+       "params": {
+            "number_of_inputs_per_object": 4,
+            "number_of_other_variables": 9,
+            "number_of_objects": 2,
+            "number_of_GRUnodes": [16, 12], "GRUdropouts": [1],
+            "number_of_postGRUnodes": [16], "postGRUdropouts": [],
+            "number_of_nodes": [64, 32, 16], "dropouts": []
+            }
+       }
+}
