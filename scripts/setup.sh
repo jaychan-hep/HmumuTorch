@@ -13,3 +13,5 @@ export PYTHONPATH="`pwd`/scripts:${PYTHONPATH}"
 
 export PATH="`pwd`/src:$PATH"
 export PYTHONPATH="`pwd`/src:$PYTHONPATH"
+
+ulimit -S -s unlimited

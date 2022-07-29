@@ -47,7 +47,7 @@ def apply(sample, train_configs, apply_config, args, variables, output_subdir):
         dataloader = DataLoader(apply_data, batch_size=64, shuffle=False, num_workers=12)
 
         md = getattr(models, train_configs[model]["algorithm"])(
-            params=train_configs[model]["params"],
+            **train_configs[model]["params"],
             lr=train_configs[model].get("learning_rate", 0.0001),
             device=dvc
         ).double().to(dvc)

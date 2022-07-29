@@ -2,44 +2,30 @@
 import torch
 from torch import nn
 from . import modelBase
+from . import modules
 
 class FCN(modelBase.hmumuModel):
-    def __init__(self, params, *args, **kwargs):
+    def __init__(self, number_of_variables, number_of_nodes=[64, 32, 16, 8], dropouts=[1], *args, **kwargs):
         super(FCN, self).__init__(*args, **kwargs)
-        number_of_variables = params["number_of_variables"]
-        number_of_nodes = params.get("number_of_nodes", [64, 32, 16, 8])
-        dropouts = params.get("dropouts", [1])
-        self.linear_relu_stack = nn.Sequential()
-        for i, nodes in enumerate(number_of_nodes):
-            self.linear_relu_stack.add_module(f"linear_{i}", nn.Linear(params["number_of_variables"] if i==0 else number_of_nodes[i-1], nodes))
-            self.linear_relu_stack.add_module(f"relu_{i}", nn.ReLU())
-            self.linear_relu_stack.add_module(f"batchNorm_{i}", nn.BatchNorm1d(nodes))
-            if i in dropouts:
-                self.linear_relu_stack.add_module(f"dropout_{i}", nn.Dropout(p=0.1))
-        self.linear_relu_stack.add_module(f"linear_{i+1}", nn.Linear(number_of_nodes[-1], 1))
-        self.linear_relu_stack.add_module(f"sigmoid_{i+1}", nn.Sigmoid())
+        self.FCN = modules.FCN(number_of_variables, number_of_nodes, dropouts, return_final_score=True, sigmoid=True)
 
     def forward(self, x):
-        logits = self.linear_relu_stack(x)
+        logits = self.FCN(x)
         return logits
 
 class RNNGRU(modelBase.hmumuModel):
-    def __init__(self, params, *args, **kwargs):
-        super(FCN, self).__init__(*args, **kwargs)
-        number_of_variables = params["number_of_variables"]
-        number_of_nodes = params.get("number_of_nodes", [64, 32, 16, 8])
-        dropouts = params.get("dropouts", [1])
-        self.linear_relu_stack = nn.Sequential()
-        for i, nodes in enumerate(number_of_nodes):
-            self.linear_relu_stack.add_module(f"linear_{i}", nn.Linear(params["number_of_variables"] if i==0 else number_of_nodes[i-1], nodes))
-            self.linear_relu_stack.add_module(f"relu_{i}", nn.ReLU())
-            self.linear_relu_stack.add_module(f"batchNorm_{i}", nn.BatchNorm1d(nodes))
-            if i in dropouts:
-                self.linear_relu_stack.add_module(f"dropout_{i}", nn.Dropout(p=0.1))
-        self.linear_relu_stack.add_module(f"linear_{i+1}", nn.Linear(number_of_nodes[-1], 1))
-        self.linear_relu_stack.add_module(f"sigmoid_{i+1}", nn.Sigmoid())
+    def __init__(self, number_of_inputs_per_object, number_of_objects, number_of_other_variables, number_of_GRUnodes=[16, 12], GRUdropouts=[1], number_of_postGRUnodes=[16], postGRUdropouts=list(), number_of_nodes=[64, 32, 16], dropouts=list(), *args, **kwargs):
+        super(RNNGRU, self).__init__(*args, **kwargs)
+
+        self.GRU = modules.sequential_GRU(number_of_inputs_per_object, number_of_objects, number_of_GRUnodes, GRUdropouts)
+        self.post_GRU = modules.FCN(number_of_GRUnodes[-1], number_of_postGRUnodes, postGRUdropouts, return_final_score=False, sigmoid=False)
+        self.FCN = modules.FCN(number_of_postGRUnodes[-1]+number_of_other_variables, number_of_nodes, dropouts, return_final_score=True, sigmoid=True)
 
     def forward(self, x):
-        logits = self.linear_relu_stack(x)
+        objects, others = x
+        objects = self.GRU(objects)
+        objects = self.post_GRU(objects)
+        x = torch.cat([objects, others], dim=1)
+        logits = self.FCN(x)
         return logits
 
