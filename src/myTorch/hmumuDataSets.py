@@ -117,8 +117,10 @@ class ApplyRootObjectStructureDataSets(ApplyRootDataSets):
         super(ApplyRootObjectStructureDataSets, self).__init__(*args, **kwargs)
         self.object_variables = object_variables
         self.other_variables = other_variables
+        self.object_data = self.data[:, self.object_variables]
+        self.other_data = self.data[:, self.other_variables]
 
     def __getitem__(self, idx):
-        object_data = torch.from_numpy(self.data[:, self.object_variables][idx])
-        other_data = torch.from_numpy(self.data[:, self.other_variables][idx])
+        object_data = torch.from_numpy(self.object_data[idx])
+        other_data = torch.from_numpy(self.other_data[idx])
         return [object_data, other_data], 1, 1.
