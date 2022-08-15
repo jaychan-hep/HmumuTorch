@@ -19,8 +19,8 @@ def getArgs():
     parser.add_argument('-ic', '--inputConfig', action='store', default='configs/inputs_config.json', help='Input config')
     parser.add_argument('-c', '--config', action='store', nargs=2, default=['configs/training_config_FCN.json', 'configs/apply_config.json'], help='training config + apply config')
     parser.add_argument('-i', '--input-dir', action='store', default='skimmed_ntuples', help='directory of training inputs')
-    parser.add_argument('-m', '--model-dir', action='store', default='models', help='directory of NN models')
-    parser.add_argument('-o', '--output-dir', action='store', default='outputs', help='directory for outputs')
+    parser.add_argument('-m', '--model-dir', action='store', default='outputs/models', help='directory of NN models')
+    parser.add_argument('-o', '--output-dir', action='store', default='outputs/postTrainingNtuples', help='directory for outputs')
     parser.add_argument('-r', '--region', action='store', choices=['two_jet', 'one_jet', 'zero_jet', 'all_jet'], default='zero_jet', help='Region to process')
     parser.add_argument('-s', '--samples', action='store', nargs='+', help='apply only for specific samples')
     return parser.parse_args()
@@ -53,7 +53,7 @@ def apply(sample, train_configs, apply_config, args, variables, output_subdir):
         ).double().to(dvc)
 
         trainer = Trainer(accelerator=device, devices=1)
-        trainer.test(model=md, dataloaders=dataloader, ckpt_path=f'{args.model_dir}/{train_configs[model]["algorithm"]}_{model}/test.ckpt', verbose=False)
+        trainer.test(model=md, dataloaders=dataloader, ckpt_path=f'{args.model_dir}/{train_configs[model]["algorithm"]}_{model}/best.ckpt', verbose=False)
         scores, ys, ws = md.test_scores, md.test_ys, md.test_ws
 
         scores_t = train.transform_score(scores, f'{args.model_dir}/{train_configs[model]["algorithm"]}_{model}_tsf.pkl')

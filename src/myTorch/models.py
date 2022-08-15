@@ -29,3 +29,21 @@ class RNNGRU(modelBase.hmumuModel):
         logits = self.FCN(x)
         return logits
 
+class DeepSets(modelBase.hmumuModel):
+    def __init__(self, number_of_inputs_per_object, number_of_other_variables, number_of_Phinodes=[16, 16, 16], Phidropouts=list(), number_of_nodes=[64, 32, 16], dropouts=list(), *args, **kwargs):
+        super(DeepSets, self).__init__(*args, **kwargs)
+
+        self.Phi = modules.FCN(number_of_inputs_per_object, number_of_Phinodes, Phidropouts, return_final_score=False, sigmoid=False)
+        self.FCN = modules.FCN(number_of_Phinodes[-1]+number_of_other_variables, number_of_nodes, dropouts, return_final_score=True, sigmoid=True)
+
+    def forward(self, x):
+        objects, others = x
+        objects_shape = objects.shape
+        objects = objects.reshape(-1, objects_shape[-1])
+        objects = self.Phi(objects)
+        objects = objects.reshape(objects_shape[0], objects_shape[1], -1)
+        objects = torch.sum(objects, dim=1)
+        x = torch.cat([objects, others], dim=1)
+        logits = self.FCN(x)
+        return logits
+
