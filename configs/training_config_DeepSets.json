@@ -33,56 +33,52 @@
        "dataset_class": "RootObjectStructureDataSets",
        "dataset_settings": {
              "sigs": "{ggF,VBF}",
-             "bkgs": "{Z,ttbar,diboson,stop}",
+             "bkgs": "bkg_reweight",
              "tree": "two_jet",
              "cut": "(m_mumu>120)&(m_mumu<130)",
              "variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar",
                            "Jets_PT_Lead", "Jets_Eta_Lead", "DeltaPhi_mumuj1", "Jets_QGscore_Lead",
                            "Jets_PT_Sub", "Jets_Eta_Sub", "DeltaPhi_mumuj2", "Jets_QGscore_Sub",
                            "Jets_PT_jj", "Jets_Y_jj", "DeltaPhi_mumujj", "Jets_Minv_jj",
-                           "Event_MET", "Event_Ht-Muons_PT_Lead-Muons_PT_Sub"],
+                           "Event_MET", "(Event_Ht-Muons_PT_Lead-Muons_PT_Sub)"],
              "object_variables": [[3, 4, 5, 6], [7, 8, 9, 10]],
              "other_variables": [0, 1, 2, 11, 12, 13, 14, 15, 16],
              "random_index": "eventNumber", "weight": "weight"
              },
-       "algorithm": "RNNGRU",
+       "algorithm": "DeepSets",
        "learning_rate": 0.0005,
        "params": {
             "number_of_inputs_per_object": 4,
             "number_of_other_variables": 9,
-            "number_of_objects": 2,
-            "number_of_GRUnodes": [16, 12], "GRUdropouts": [1],
-            "number_of_postGRUnodes": [16], "postGRUdropouts": [],
+            "number_of_Phinodes": [16, 16, 16], "Phidropouts": [],
             "number_of_nodes": [64, 32, 16], "dropouts": []
             },
-       "early_stopping" : {"monitor": "val_loss", "mode": "min", "patience": 20, "check_finite": false}
+       "early_stopping" : {"monitor": "val_auc", "mode": "max", "patience": 20, "check_finite": false}
        },
  "VBF": {
        "dataset_class": "RootObjectStructureDataSets",
        "dataset_settings": {
              "sigs": "VBF",
-             "bkgs": "{Z,ttbar,diboson,stop}",
+             "bkgs": "bkg_reweight",
              "tree": "two_jet",
              "cut": "(m_mumu>120)&(m_mumu<130)",
              "variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar",
                            "Jets_PT_Lead", "Jets_Eta_Lead", "DeltaPhi_mumuj1", "Jets_QGscore_Lead",
                            "Jets_PT_Sub", "Jets_Eta_Sub", "DeltaPhi_mumuj2", "Jets_QGscore_Sub",
                            "Jets_PT_jj", "Jets_Y_jj", "DeltaPhi_mumujj", "Jets_Minv_jj",
-                           "Event_MET", "Event_Ht-Muons_PT_Lead-Muons_PT_Sub"],
+                           "Event_MET", "(Event_Ht-Muons_PT_Lead-Muons_PT_Sub)"],
              "object_variables": [[3, 4, 5, 6], [7, 8, 9, 10]],
              "other_variables": [0, 1, 2, 11, 12, 13, 14, 15, 16],
              "random_index": "eventNumber", "weight": "weight"
              },
-       "algorithm": "RNNGRU",
+       "algorithm": "DeepSets",
        "learning_rate": 0.001,
        "params": {
             "number_of_inputs_per_object": 4,
             "number_of_other_variables": 9,
-            "number_of_objects": 2,
-            "number_of_GRUnodes": [16, 12], "GRUdropouts": [1],
-            "number_of_postGRUnodes": [16], "postGRUdropouts": [],
+            "number_of_Phinodes": [16, 16, 16], "Phidropouts": [],
             "number_of_nodes": [64, 32, 16], "dropouts": []
             },
-       "early_stopping" : {"monitor": "val_loss", "mode": "min", "patience": 20, "check_finite": false}
+       "early_stopping" : {"monitor": "val_auc", "mode": "max", "patience": 20, "check_finite": false}
        }
 }

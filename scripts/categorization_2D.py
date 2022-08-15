@@ -63,7 +63,7 @@ def gettingsig(region, variable, boundaries_VBF, boundaries, transform, estimate
 
     for category in ['sig', 'VBF', 'ggF', "data_sid", "bkgmc_sid", "bkgmc_cen"]:
 
-        for data in tqdm(uproot.iterate(f'outputs/{region}/{"bkgmc" if "bkgmc" in category else category}.root:test', expressions=[f"{variable}_score{'_t' if transform else ''}", f"{variable}_score_VBF{'_t' if transform else ''}", 'm_mumu', 'weight', 'eventNumber'], cut=None if 'sid' in category else "eventNumber%4==3", step_size=500000, library='pd'), desc=f'Loading {category}', bar_format='{desc}: {percentage:3.0f}%|{bar:20}{r_bar}'):
+        for data in tqdm(uproot.iterate(f'outputs/postTrainingNtuples/{region}/{"bkgmc" if "bkgmc" in category else category}.root:test', expressions=[f"{variable}_score{'_t' if transform else ''}", f"{variable}_score_VBF{'_t' if transform else ''}", 'm_mumu', 'weight', 'eventNumber'], cut=None if 'sid' in category else "eventNumber%4==3", step_size=500000, library='pd'), desc=f'Loading {category}', bar_format='{desc}: {percentage:3.0f}%|{bar:20}{r_bar}'):
     
             if 'sid' in category:
                 data = data[(data.m_mumu >= 110) & (data.m_mumu <= 180) & ((data.m_mumu < 120) | (data.m_mumu > 130))]
@@ -138,14 +138,14 @@ def projectionY(hist, x1, x2, histname, ybin=100, y1=0, y2=1):
 def categorizing(region, variable, sigs, bkgs, nscan, nscanvbf, minN, transform, nbin, nvbf, floatB, n_fold, fold, earlystop, estimate):
 
     # get inputs
-    f_sig = TFile('outputs/%s/sig.root' % (region))
+    f_sig = TFile('outputs/postTrainingNtuples/%s/sig.root' % (region))
     t_sig = f_sig.Get('test')
 
     if estimate in ["fullSim", "fullSimrw"]:
-        f_bkgmc = TFile('outputs/%s/bkgmc.root' % (region))
+        f_bkgmc = TFile('outputs/postTrainingNtuples/%s/bkgmc.root' % (region))
         t_bkgmc = f_bkgmc.Get('test')
     if estimate in ["fullSimrw", "data_sid"]:
-        f_data_sid = TFile('outputs/%s/data_sid.root' % (region))
+        f_data_sid = TFile('outputs/postTrainingNtuples/%s/data_sid.root' % (region))
         t_data_sid = f_data_sid.Get('test')
 
     # filling signal histograms
@@ -299,14 +299,14 @@ def main():
     if not args.skip:
         siglist=''
         for sig in sigs:
-            if os.path.isfile('outputs/%s/%s.root'% (region,sig)): siglist+=' outputs/%s/%s.root'% (region,sig)
-        os.system("hadd -f outputs/%s/sig.root"%(region)+siglist)
+            if os.path.isfile('outputs/postTrainingNtuples/%s/%s.root'% (region,sig)): siglist+=' outputs/postTrainingNtuples/%s/%s.root'% (region,sig)
+        os.system("hadd -f outputs/postTrainingNtuples/%s/sig.root"%(region)+siglist)
 
     if not args.skip:
         bkglist=''
         for bkg in bkgs:
-            if os.path.isfile('outputs/%s/%s.root'% (region,bkg)): bkglist+=' outputs/%s/%s.root'% (region,bkg)
-        os.system("hadd -f outputs/%s/bkgmc.root"%(region)+bkglist)
+            if os.path.isfile('outputs/postTrainingNtuples/%s/%s.root'% (region,bkg)): bkglist+=' outputs/postTrainingNtuples/%s/%s.root'% (region,bkg)
+        os.system("hadd -f outputs/postTrainingNtuples/%s/bkgmc.root"%(region)+bkglist)
 
     nscan=args.nscan
     nscanvbf = args.nscanvbf
@@ -353,11 +353,11 @@ def main():
     outs['variable'] = variable
     outs['estimate'] = args.estimate
 
-    if not os.path.isdir('significances/%s'%region):
-        print(f'INFO: Creating output folder: "significances/{region}"')
-        os.makedirs("significances/%s"%region)
+    if not os.path.isdir('outputs/significances/%s'%region):
+        print(f'INFO: Creating output folder: "outputs/significances/{region}"')
+        os.makedirs("outputs/significances/%s"%region)
 
-    with open('significances/%s/%d_%d.json' % (region, args.vbf, args.nbin), 'w') as json_file:
+    with open('outputs/significances/%s/%d_%d.json' % (region, args.vbf, args.nbin), 'w') as json_file:
         json.dump(outs, json_file) 
 
 
