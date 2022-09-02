@@ -52,12 +52,11 @@ class sequential_GRU(nn.Module):
 class timeDistributed(nn.Module):
     def __init__(self, module, *args, **kwargs):
         super(timeDistributed, self).__init__(*args, **kwargs)
-
         self.module = module
 
     def forward(self, x):
         shape = x.shape
         x = x.reshape(-1, shape[-1])
         x = self.module(x)
-        x = objects.reshape(shape[0], shape[1], -1)
+        x = x.reshape(shape[0], shape[1], -1)
         return x

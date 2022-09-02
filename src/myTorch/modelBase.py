@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 import sys
 import torch
-from torch import nn
-from torch.optim import Adam
+from torch import nn, optim
+# from torch.optim import Adam
 from pytorch_lightning import LightningModule
 from utils import metric
 from . import loss
 
 class hmumuModel(LightningModule):
-    def __init__(self, loss_fn=None, lr=0.0001, eps=1e-07, device="cpu"):
+    def __init__(self, loss_fn=None, optimizer="Adam", optimizer_params=dict(), device="cpu"):
         super(hmumuModel, self).__init__()
         self.dvc = device
         if loss_fn:
             self.loss_fn = loss_fn
         else:
             self.loss_fn = loss.EventWeightedBCE()
-        self.lr = lr
-        self.eps = eps
+        self.optimizer = optimizer
+        self.optimizer_params = optimizer_params
         self.epoch = 0
 
     def training_step(self, batch, batch_idx):
@@ -113,4 +113,4 @@ class hmumuModel(LightningModule):
         # sys.stdout.write(f'Test loss - {self.test_loss}, Test AUC - {self.test_roc_auc} \n')
 
     def configure_optimizers(self):
-        return Adam(self.parameters(), lr=self.lr, eps=self.eps)
+        return getattr(optim, self.optimizer)(self.parameters(), **self.optimizer_params)
