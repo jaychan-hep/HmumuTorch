@@ -9,8 +9,14 @@
              "random_index": "eventNumber", "weight": "weight"
              },
        "algorithm": "FCN",
-       "learning_rate": 0.0001,
-       "params": {"number_of_variables": 3},
+       "params": {
+           "optimizer": "Adam",
+           "optimizer_params": {
+                "lr": 0.0001,
+                "eps": 1e-07
+                },
+           "number_of_variables": 3
+           },
        "early_stopping" : {"monitor": "val_loss", "mode": "min", "patience": 20, "check_finite": false}
        },
  "one_jet": {
@@ -25,8 +31,14 @@
              "random_index": "eventNumber", "weight": "weight"
              },
        "algorithm": "FCN",
-       "learning_rate": 0.0001,
-       "params": {"number_of_variables": 7},
+       "params": {
+           "optimizer": "Adam",
+           "optimizer_params": {
+                "lr": 0.0001,
+                "eps": 1e-07
+                },
+           "number_of_variables": 7
+           },
        "early_stopping" : {"monitor": "val_loss", "mode": "min", "patience": 20, "check_finite": false}
        },
  "two_jet": {
@@ -46,8 +58,11 @@
              "random_index": "eventNumber", "weight": "weight"
              },
        "algorithm": "RNNGRU",
-       "learning_rate": 0.0005,
        "params": {
+            "optimizer_params": {
+                "lr": 0.0005,
+                "eps": 1e-07
+                },
             "number_of_inputs_per_object": 4,
             "number_of_other_variables": 9,
             "number_of_objects": 2,
@@ -74,8 +89,11 @@
              "random_index": "eventNumber", "weight": "weight"
              },
        "algorithm": "RNNGRU",
-       "learning_rate": 0.001,
        "params": {
+            "optimizer_params": {
+                "lr": 0.001,
+                "eps": 1e-07
+                },
             "number_of_inputs_per_object": 4,
             "number_of_other_variables": 9,
             "number_of_objects": 2,

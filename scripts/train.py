@@ -40,7 +40,7 @@ def main():
         sys.exit(1)
 
     train_data, val_data, test_data = hmumuDataSets.load_data_train_val_test_split(
-    	dataset_class=config.get("dataset_class", "RootDataSets"),
+        dataset_class=config.get("dataset_class", "RootDataSets"),
         input_dir=args.input_dir,
         **config["dataset_settings"],
         normalize=f"{args.output_dir}/std_scaler_{args.region}.pkl"
@@ -53,7 +53,8 @@ def main():
 
     model = getattr(models, config["algorithm"])(
         **config["params"],
-        lr=config.get("learning_rate", 0.0001),
+        # optimizer=config["optimizer"],
+        # optimizer_params=config["optimizer_params"],
         device=dvc
     ).double().to(dvc)
     print(model)

@@ -45,7 +45,7 @@
        "dataset_class": "RootObjectStructureDataSets",
        "dataset_settings": {
              "sigs": "{ggF,VBF}",
-             "bkgs": "bkg_reweight",
+             "bkgs": "{Z,ttbar,diboson,stop}",
              "tree": "two_jet",
              "cut": "(m_mumu>120)&(m_mumu<130)",
              "variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar",
@@ -57,13 +57,12 @@
              "other_variables": [0, 1, 2, 11, 12, 13, 14, 15, 16],
              "random_index": "eventNumber", "weight": "weight"
              },
-       "algorithm": "DeepSets",
+       "algorithm": "SelfAttention",
        "params": {
-            "optimizer": "Adam",
+            "optimizer": "RAdam",
             "optimizer_params": {
-                "lr": 0.0005,
-                "eps": 1e-07
-                },
+                 "lr": 0.001
+                 },
             "number_of_inputs_per_object": 4,
             "number_of_other_variables": 9,
             "number_of_Phinodes": [16, 16, 16], "Phidropouts": [],
@@ -75,7 +74,7 @@
        "dataset_class": "RootObjectStructureDataSets",
        "dataset_settings": {
              "sigs": "VBF",
-             "bkgs": "bkg_reweight",
+             "bkgs": "{Z,ttbar,diboson,stop}",
              "tree": "two_jet",
              "cut": "(m_mumu>120)&(m_mumu<130)",
              "variables": ["Z_PT_OnlyNearFsr", "Z_Y_OnlyNearFsr", "Muons_CosThetaStar",
@@ -87,13 +86,12 @@
              "other_variables": [0, 1, 2, 11, 12, 13, 14, 15, 16],
              "random_index": "eventNumber", "weight": "weight"
              },
-       "algorithm": "DeepSets",
+       "algorithm": "SelfAttention",
        "params": {
-            "optimizer": "Adam",
+            "optimizer": "RAdam",
             "optimizer_params": {
-                "lr": 0.001,
-                "eps": 1e-07
-                },
+                 "lr": 0.001
+                 },
             "number_of_inputs_per_object": 4,
             "number_of_other_variables": 9,
             "number_of_Phinodes": [16, 16, 16], "Phidropouts": [],
